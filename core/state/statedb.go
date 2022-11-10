@@ -1405,6 +1405,7 @@ func (s *StateDB) CommitForProof() {
 		}
 		if obj.empty() { // rollup-specific: we ignore suicided accounts here
 			obj.deleted = true
+<<<<<<< HEAD
 
 			// We need to maintain account deletions explicitly (will remain
 			// set indefinitely). Note only the first occurred self-destruct
@@ -1427,11 +1428,11 @@ func (s *StateDB) CommitForProof() {
 		addressesToPrefetch = append(addressesToPrefetch, common.CopyBytes(addr[:])) // Copy needed for closure
 	}
 	if s.prefetcher != nil && len(addressesToPrefetch) > 0 {
-		s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, addressesToPrefetch)
+		s.prefetcher.prefetch(common.Hash{}, s.originalRoot, addressesToPrefetch)
 	}
 	for addr := range s.stateObjectsPending {
 		if obj := s.stateObjects[addr]; !obj.deleted {
-			obj.updateRoot()
+			obj.updateRoot(s.db)
 		}
 	}
 	if s.prefetcher != nil {
@@ -1458,7 +1459,13 @@ func (s *StateDB) DeleteSuicidedAccountForProof(addr common.Address) {
 	}
 	obj.deleted = true
 	if s.prefetcher != nil {
+<<<<<<< HEAD
 		s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, [][]byte{common.CopyBytes(addr[:])})
+=======
+		s.prefetcher.prefetch(common.Hash{}, s.originalRoot, [][]byte{common.CopyBytes(addr[:])})
+	}
+	if s.prefetcher != nil {
+>>>>>>> e5b0d5f8c (apply specular changes)
 		if trie := s.prefetcher.trie(common.Hash{}, s.originalRoot); trie != nil {
 			s.trie = trie
 		}
@@ -1467,6 +1474,7 @@ func (s *StateDB) DeleteSuicidedAccountForProof(addr common.Address) {
 }
 
 // <specular modification/>
+<<<<<<< HEAD
 
 // convertAccountSet converts a provided account set from address keyed to hash keyed.
 func (s *StateDB) convertAccountSet(set map[common.Address]*types.StateAccount) map[common.Hash]struct{} {
@@ -1502,3 +1510,5 @@ func copy2DSet[k comparable](set map[k]map[common.Hash][]byte) map[k]map[common.
 	}
 	return copied
 }
+=======
+>>>>>>> e5b0d5f8c (apply specular changes)
