@@ -21,8 +21,17 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+
+	// <specular modification>
+	"github.com/ethereum/go-ethereum/core/types"
+	// <specular modification/>
+
 	"github.com/ethereum/go-ethereum/log"
 )
+
+// <specular modification>
+type EVMHook func(msg types.Message, evm *EVM) error //
+// <specular modification/>
 
 // Config are the configuration options for the Interpreter
 type Config struct {
@@ -34,6 +43,10 @@ type Config struct {
 	JumpTable *JumpTable // EVM instruction table, automatically populated if unset
 
 	ExtraEips []int // Additional EIPS that are to be enabled
+
+	// <specular modification>
+	SpecularEVMPreTransferHook EVMHook
+	// <specular modification/>
 }
 
 // ScopeContext contains the things that are per-call, such as stack and memory,
