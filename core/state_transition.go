@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -349,6 +350,18 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Skip fee payment when NoBaseFee is set and the fee fields
 		// are 0. This avoids a negative effectiveTip being applied to
 		// the coinbase when simulating calls.
+	// <specular modification>
+	} else if st.evm.Config.CalculateL1Fee != nil {
+		fee := new(big.Int).SetUint64(st.gasUsed())
+		fee.Mul(fee, effectiveTip)
+		l1Fee, err := st.evm.Config.CalculateL1Fee(msg, st.state)
+		if err != nil {
+			// TODO: what error type to use?
+			return nil, fmt.Errorf("could not calculate L1 Fee")
+		}
+		fee.Add(fee, l1Fee)
+		st.state.AddBalance(st.evm.Context.Coinbase, fee)
+	// <specular modification/>
 	} else {
 		fee := new(big.Int).SetUint64(st.gasUsed())
 		fee.Mul(fee, effectiveTip)

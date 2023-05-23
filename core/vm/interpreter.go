@@ -19,10 +19,31 @@ package vm
 import (
 	"hash"
 
+	// <specular modification>
+	"math/big"
+	// <specular modification/>
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
 )
+
+// <specular modification>
+// TODO: as defined in https://github.com/ethereum-optimism/optimism/blob/develop/l2geth/rollup/fees/rollup_fee.go#L210
+// TODO: maybe a type definition can be avoided by expecting a properly encoded []byte instead
+type Message interface {
+	From() common.Address
+	To() *common.Address
+	GasPrice() *big.Int
+	Gas() uint64
+	Value() *big.Int
+	Nonce() uint64
+	Data() []byte
+}
+
+// TODO: should this take the recipient address, optimisms version does
+type L1FeeCalculator func(msg Message, state StateDB) (*big.Int, error);
+// <specular modification/>
 
 // Config are the configuration options for the Interpreter
 type Config struct {
@@ -34,6 +55,10 @@ type Config struct {
 	JumpTable *JumpTable // EVM instruction table, automatically populated if unset
 
 	ExtraEips []int // Additional EIPS that are to be enabled
+
+	// <specular modification>
+	CalculateL1Fee L1FeeCalculator
+	// <specular modification/>
 }
 
 // ScopeContext contains the things that are per-call, such as stack and memory,
