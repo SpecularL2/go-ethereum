@@ -457,6 +457,15 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 	// <specular modification/>
 
+	// <specular modification>
+	if st.evm.Config.SpecularEVMPreTransferHook != nil {
+		err = st.evm.Config.SpecularEVMPreTransferHook(st.msg.(types.Message), st.evm)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// <specular modification/>
+
 	// Check clause 6
 	if msg.Value.Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From, msg.Value) {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From.Hex())
