@@ -35,6 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
@@ -65,6 +66,11 @@ type testBlockChain struct {
 	gasLimit      atomic.Uint64
 	statedb       *state.StateDB
 	chainHeadFeed *event.Feed
+	vmConfig      vm.Config
+}
+
+func (bc *testBlockChain) GetVMConfig() *vm.Config {
+	return &bc.vmConfig
 }
 
 func newTestBlockChain(config *params.ChainConfig, gasLimit uint64, statedb *state.StateDB, chainHeadFeed *event.Feed) *testBlockChain {
@@ -155,6 +161,25 @@ func makeAddressReserver() txpool.AddressReserver {
 
 func setupPool() (*LegacyPool, *ecdsa.PrivateKey) {
 	return setupPoolWithConfig(params.TestChainConfig)
+}
+
+// returns a tx pool with an injected L1 Fee function
+// L1 fee is hardcoded to 100 wei
+func setupTxPoolWithL1Fee() (*TxPool, *ecdsa.PrivateKey) {
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	blockchain := &testBlockChain{10000000, statedb, new(event.Feed), vm.Config{}}
+	blockchain.vmConfig.SpecularL1FeeReader =
+		func(msg types.Message, db vm.StateDB) (*big.Int, error) {
+			return big.NewInt(100), nil
+		}
+
+	key, _ := crypto.GenerateKey()
+	config := params.TestChainConfig
+	pool := NewTxPool(testTxPoolConfig, config, blockchain)
+
+	// wait for the pool to initialize
+	<-pool.initDoneCh
+	return pool, key
 }
 
 func setupPoolWithConfig(config *params.ChainConfig) (*LegacyPool, *ecdsa.PrivateKey) {
@@ -317,6 +342,35 @@ func testSetNonce(pool *LegacyPool, addr common.Address, nonce uint64) {
 	pool.mu.Lock()
 	pool.currentState.SetNonce(addr, nonce)
 	pool.mu.Unlock()
+}
+
+func TestL1FeeInsufficientFunds(t *testing.T) {
+	t.Parallel()
+
+	poolNoFee, key := setupTxPool()
+	poolWithFee, key := setupTxPoolWithL1Fee()
+
+	defer poolNoFee.Stop()
+	defer poolWithFee.Stop()
+
+	// tx cost before L1 fee == 200
+	tx := transaction(0, 30_000, key)
+	from, _ := deriveSender(tx)
+
+	testAddBalance(poolNoFee, from, tx.Cost())
+	err := poolNoFee.AddRemote(tx)
+
+	// if no L1 Fee is set, tx.Cost() will be enough to cover the tx
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
+
+	testAddBalance(poolWithFee, from, tx.Cost())
+
+	// if a L1 fee is added, we don't have enough gas for the tx
+	if err := poolWithFee.AddRemote(tx); !errors.Is(err, ErrInsufficientFunds) {
+		t.Error("expected", ErrInsufficientFunds)
+	}
 }
 
 func TestInvalidTransactions(t *testing.T) {

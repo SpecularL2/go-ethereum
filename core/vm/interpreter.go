@@ -21,6 +21,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -42,7 +43,8 @@ type MessageInterface interface {
 	GetSkipAccountChecks() bool
 }
 
-type EVMHook func(msg MessageInterface, evm *EVM) error
+type EVMHook func(msg MessageInterface, db StateDB) error
+type EVMReader func(msg MessageInterface, db StateDB) (*big.Int, error) //
 // <specular modification/>
 
 // Config are the configuration options for the Interpreter
@@ -54,6 +56,7 @@ type Config struct {
 
 	// <specular modification>
 	SpecularEVMPreTransferHook EVMHook
+	SpecularL1FeeReader        EVMReader
 	// <specular modification/>
 }
 

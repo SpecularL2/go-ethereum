@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -61,6 +62,26 @@ var (
 	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
 	// another remote transaction.
 	ErrTxPoolOverflow = errors.New("txpool is full")
+
+	// ErrReplaceUnderpriced is returned if a transaction is attempted to be replaced
+	// with a different one without the required price bump.
+	ErrReplaceUnderpriced = errors.New("replacement transaction underpriced")
+
+	// ErrGasLimit is returned if a transaction's requested gas limit exceeds the
+	// maximum allowance of the current block.
+	ErrGasLimit = errors.New("exceeds block gas limit")
+
+	// ErrNegativeValue is a sanity error to ensure no one is able to specify a
+	// transaction with a negative value.
+	ErrNegativeValue = errors.New("negative value")
+
+	// ErrOversizedData is returned if the input data of a transaction is greater
+	// than some meaningful limit a user might use. This is not a consensus error
+	// making the transaction invalid, rather a DOS protection.
+	ErrOversizedData = errors.New("oversized data")
+
+	// ErrL1Fee is returned if the L1 fee could not be calculated
+	ErrL1Fee = errors.New("could not calculate L1 fee")
 )
 
 var (
@@ -120,6 +141,7 @@ type BlockChain interface {
 
 	// StateAt returns a state database for a given root hash (generally the head).
 	StateAt(root common.Hash) (*state.StateDB, error)
+	GetVMConfig() *vm.Config
 }
 
 // Config are the configuration parameters of the transaction pool.
@@ -1441,7 +1463,15 @@ func (pool *LegacyPool) promoteExecutables(accounts []common.Address) []*types.T
 		}
 		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
-		drops, _ := list.Filter(pool.currentState.GetBalance(addr), gasLimit)
+		balance := pool.currentState.GetBalance(addr)
+		if !list.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
+			// Reduce the cost-cap by L1 rollup cost of the first tx if necessary. Other txs will get filtered out afterwards.
+			first := list.txs.Get((*list.txs.index)[0])
+			msg, _ := first.AsMessage(pool.signer, pool.priced.urgent.baseFee)
+			l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(msg, pool.currentState)
+			balance = new(big.Int).Sub(balance, l1Fee) // negative big int is fine
+		}
+		drops, _ := list.Filter(balance, pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
@@ -1642,7 +1672,15 @@ func (pool *LegacyPool) demoteUnexecutables() {
 			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), gasLimit)
+		balance := pool.currentState.GetBalance(addr)
+		if !list.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
+			// Reduce the cost-cap by L1 rollup cost of the first tx if necessary. Other txs will get filtered out afterwards.
+			first := list.txs.Get((*list.txs.index)[0])
+			msg, _ := first.AsMessage(pool.signer, pool.priced.urgent.baseFee)
+			l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(msg, pool.currentState)
+			balance = new(big.Int).Sub(balance, l1Fee) // negative big int is fine
+		}
+		drops, invalids := list.Filter(balance, pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)
