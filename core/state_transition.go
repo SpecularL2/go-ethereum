@@ -450,16 +450,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	// <specular modification>
 	if st.evm.Config.SpecularEVMPreTransferHook != nil {
-		err = st.evm.Config.SpecularEVMPreTransferHook(st.msg, st.evm)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// <specular modification/>
-
-	// <specular modification>
-	if st.evm.Config.SpecularEVMPreTransferHook != nil {
-		err = st.evm.Config.SpecularEVMPreTransferHook(st.msg.(types.Message), st.evm.StateDB)
+		err = st.evm.Config.SpecularEVMPreTransferHook(st.msg, st.evm.StateDB)
 		if err != nil {
 			return nil, err
 		}

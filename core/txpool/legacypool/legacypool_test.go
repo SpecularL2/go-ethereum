@@ -169,7 +169,7 @@ func setupTxPoolWithL1Fee() (*TxPool, *ecdsa.PrivateKey) {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := &testBlockChain{10000000, statedb, new(event.Feed), vm.Config{}}
 	blockchain.vmConfig.SpecularL1FeeReader =
-		func(msg types.Message, db vm.StateDB) (*big.Int, error) {
+		func(tx *types.Transaction, db vm.StateDB) (*big.Int, error) {
 			return big.NewInt(100), nil
 		}
 
