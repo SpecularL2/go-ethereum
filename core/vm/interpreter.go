@@ -44,7 +44,7 @@ type MessageInterface interface {
 }
 
 type EVMHook func(msg MessageInterface, db StateDB) error
-type EVMReader func(msg MessageInterface, db StateDB) (*big.Int, error) //
+type EVMReader func(tx *types.Transaction, db StateDB) (*big.Int, error) //
 // <specular modification/>
 
 // Config are the configuration options for the Interpreter

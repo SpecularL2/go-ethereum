@@ -1428,6 +1428,20 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 	pool.addTxsLocked(reinject, false)
 }
 
+// getBalanceWithL1Fee returns the balance of the addr minus the L1 fee of the first tx in the list
+func (pool *LegacyPool) getBalanceWithL1Fee(addr common.Address, list *list) *big.Int {
+	balance := pool.currentState.GetBalance(addr)
+	if !list.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
+		// Reduce the cost-cap by L1 rollup cost of the first tx if necessary. Other txs will get filtered out afterwards.
+		first := list.txs.Get((*list.txs.index)[0])
+		l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(first, pool.currentState)
+
+		balance = new(big.Int).Sub(balance, l1Fee) // negative big int is fine
+	}
+
+	return balance
+}
+
 // promoteExecutables moves transactions that have become processable from the
 // future queue to the set of pending transactions. During this process, all
 // invalidated transactions (low nonce, low balance) are deleted.
@@ -1450,15 +1464,8 @@ func (pool *LegacyPool) promoteExecutables(accounts []common.Address) []*types.T
 		}
 		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
-		balance := pool.currentState.GetBalance(addr)
-		if !list.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
-			// Reduce the cost-cap by L1 rollup cost of the first tx if necessary. Other txs will get filtered out afterwards.
-			first := list.txs.Get((*list.txs.index)[0])
-			msg, _ := first.AsMessage(pool.signer, pool.priced.urgent.baseFee)
-			l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(msg, pool.currentState)
-			balance = new(big.Int).Sub(balance, l1Fee) // negative big int is fine
-		}
-		drops, _ := list.Filter(balance, pool.currentMaxGas)
+		balance := pool.getBalanceWithL1Fee(addr, list)
+		drops, _ := list.Filter(balance, gasLimit)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
@@ -1659,21 +1666,12 @@ func (pool *LegacyPool) demoteUnexecutables() {
 			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
-		balance := pool.currentState.GetBalance(addr)
-		if !list.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
-			// Reduce the cost-cap by L1 rollup cost of the first tx if necessary. Other txs will get filtered out afterwards.
-			first := list.txs.Get((*list.txs.index)[0])
-			msg, _ := first.AsMessage(pool.signer, pool.priced.urgent.baseFee)
-			l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(msg, pool.currentState)
-			balance = new(big.Int).Sub(balance, l1Fee) // negative big int is fine
-		}
-		drops, invalids := list.Filter(balance, pool.currentMaxGas)
+		balance := pool.getBalanceWithL1Fee(addr, list)
+		drops, invalids := list.Filter(balance, gasLimit)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)
-			pool.all.Remove(hash)
 		}
-		pendingNofundsMeter.Mark(int64(len(drops)))
 
 		for _, tx := range invalids {
 			hash := tx.Hash()
@@ -1716,7 +1714,7 @@ type addressByHeartbeat struct {
 
 type addressesByHeartbeat []addressByHeartbeat
 
-func (a addressesByHeartbeat) Len() int           { return len(a) }
+func (a addressesByHeartbeat) Len() int       { return len(a) }
 func (a addressesByHeartbeat) Less(i, j int) bool { return a[i].heartbeat.Before(a[j].heartbeat) }
 func (a addressesByHeartbeat) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
@@ -1732,7 +1730,6 @@ type accountSet struct {
 // derivations.
 func newAccountSet(signer types.Signer, addrs ...common.Address) *accountSet {
 	as := &accountSet{
-		accounts: make(map[common.Address]struct{}, len(addrs)),
 		signer:   signer,
 	}
 	for _, addr := range addrs {
