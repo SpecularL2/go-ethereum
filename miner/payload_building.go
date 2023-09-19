@@ -202,13 +202,13 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		withdrawals: args.Withdrawals,
 		beaconRoot:  args.BeaconRoot,
 		noTxs:       true,
-		// <specular modification>
-		txs: args.Transactions,
-		// <specular modification/>
+		txs:         args.Transactions,
 	}
-	empty := w.getSealingBlock(emptyParams)
-	if empty.err != nil {
-		return nil, empty.err
+	// <specular modification>
+	empty, emptyFees, err := w.getSealingBlock(emptyParams)
+	// <specular modification/>
+	if err != nil {
+		return nil, err
 	}
 
 	// Construct a payload object for return.

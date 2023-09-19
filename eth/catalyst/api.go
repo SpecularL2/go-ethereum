@@ -733,11 +733,9 @@ func (api *ConsensusAPI) invalid(err error, latestValid *types.Header) engine.Pa
 //
 // TODO(karalabe): Spin this goroutine down somehow
 func (api *ConsensusAPI) heartbeat() {
-	// <specular modification>
 	if api.eth.Miner().IsL2EngineApiEnabled() { // don't start the api heartbeat, there is no transition
 		return
 	}
-	// <specular modification/>
 
 	// Sleep a bit on startup since there's obviously no beacon client yet
 	// attached, so no need to print scary warnings to the user.
