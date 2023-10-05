@@ -205,10 +205,10 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		txs:         args.Transactions,
 	}
 	// <specular modification>
-	empty, emptyFees, err := w.getSealingBlock(emptyParams)
+	empty := w.getSealingBlock(emptyParams)
 	// <specular modification/>
-	if err != nil {
-		return nil, err
+	if empty.err != nil {
+		return nil, empty.err
 	}
 
 	// Construct a payload object for return.

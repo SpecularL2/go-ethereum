@@ -413,20 +413,6 @@ func recalcRecommit(minRecommit, prev time.Duration, target float64, inc bool) t
 // newWorkLoop is a standalone goroutine to submit new sealing work upon received events.
 func (w *worker) newWorkLoop(recommit time.Duration) {
 	defer w.wg.Done()
-	// <specular modification>
-	if w.config.EnableL2EngineApi {
-		for { // do not update the pending-block, instead drain work without doing it, to keep producers from blocking.
-			select {
-			case <-w.startCh:
-			case <-w.chainHeadCh:
-			case <-w.resubmitIntervalCh:
-			case <-w.resubmitAdjustCh:
-			case <-w.exitCh:
-				return
-			}
-		}
-	}
-	// <specular modification/>
 	var (
 		interrupt   *atomic.Int32
 		minRecommit = recommit // minimal resubmit interval specified by user.
@@ -1046,9 +1032,9 @@ func (w *worker) generateWork(params *generateParams) *newPayloadResult {
 	for _, tx := range params.txs {
 		from, _ := types.Sender(work.signer, tx)
 		work.state.SetTxContext(tx.Hash(), work.tcount)
-		_, err := w.commitTransaction(work, &txpool.Transaction{Tx: tx})
+		_, err := w.commitTransaction(work, tx)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to force-include tx: %s type: %d sender: %s nonce: %d, err: %w", tx.Hash(), tx.Type(), from, tx.Nonce(), err)
+			return &newPayloadResult{err: fmt.Errorf("failed to force-include tx: %s type: %d sender: %s nonce: %d, err: %w", tx.Hash(), tx.Type(), from, tx.Nonce(), err)}
 		}
 		work.tcount++
 	}
