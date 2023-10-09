@@ -86,6 +86,7 @@ type StateDB interface {
 	GetCurrentAccessListForProof() (map[common.Address]int, []map[common.Hash]struct{})
 	GetStateRootForProof(common.Address) common.Hash
 	GetRootForProof() common.Hash
+	GetStorageRoot(addr common.Address) common.Hash
 	CommitForProof()
 	DeleteSuicidedAccountForProof(addr common.Address)
 	// <specular modification/>
