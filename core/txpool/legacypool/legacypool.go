@@ -1671,7 +1671,9 @@ func (pool *LegacyPool) demoteUnexecutables() {
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)
+			pool.all.Remove(hash)
 		}
+		pendingNofundsMeter.Mark(int64(len(drops)))
 
 		for _, tx := range invalids {
 			hash := tx.Hash()
@@ -1714,7 +1716,7 @@ type addressByHeartbeat struct {
 
 type addressesByHeartbeat []addressByHeartbeat
 
-func (a addressesByHeartbeat) Len() int       { return len(a) }
+func (a addressesByHeartbeat) Len() int           { return len(a) }
 func (a addressesByHeartbeat) Less(i, j int) bool { return a[i].heartbeat.Before(a[j].heartbeat) }
 func (a addressesByHeartbeat) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
@@ -1730,6 +1732,7 @@ type accountSet struct {
 // derivations.
 func newAccountSet(signer types.Signer, addrs ...common.Address) *accountSet {
 	as := &accountSet{
+		accounts: make(map[common.Address]struct{}, len(addrs)),
 		signer:   signer,
 	}
 	for _, addr := range addrs {
