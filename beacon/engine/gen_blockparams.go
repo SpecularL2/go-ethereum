@@ -22,8 +22,8 @@ func (p PayloadAttributes) MarshalJSON() ([]byte, error) {
 		Withdrawals           []*types.Withdrawal `json:"withdrawals"`
 		BeaconRoot            *common.Hash        `json:"parentBeaconBlockRoot"`
 		// <specular modification>
-		Transactions          []hexutil.Bytes     `json:"transactions,omitempty"  gencodec:"optional"`
-		NoTxPool              bool                `json:"noTxPool,omitempty" gencodec:"optional"`
+		Transactions []hexutil.Bytes `json:"transactions,omitempty"  gencodec:"optional"`
+		NoTxPool     bool            `json:"noTxPool,omitempty" gencodec:"optional"`
 		// <specular modification/>
 	}
 	var enc PayloadAttributes
@@ -53,8 +53,8 @@ func (p *PayloadAttributes) UnmarshalJSON(input []byte) error {
 		Withdrawals           []*types.Withdrawal `json:"withdrawals"`
 		BeaconRoot            *common.Hash        `json:"parentBeaconBlockRoot"`
 		// <specular modification>
-		Transactions          []hexutil.Bytes     `json:"transactions,omitempty"  gencodec:"optional"`
-		NoTxPool              *bool               `json:"noTxPool,omitempty" gencodec:"optional"`
+		Transactions []hexutil.Bytes `json:"transactions,omitempty"  gencodec:"optional"`
+		NoTxPool     *bool           `json:"noTxPool,omitempty" gencodec:"optional"`
 		// <specular modification/>
 	}
 	var dec PayloadAttributes

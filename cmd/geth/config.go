@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/scwallet"
 	"github.com/ethereum/go-ethereum/accounts/usbwallet"
 	"github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth/catalyst"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
@@ -43,6 +44,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/naoina/toml"
+	"github.com/specularL2/specular/lib/el_golang_lib/hook"
 	"github.com/urfave/cli/v2"
 )
 
@@ -84,6 +86,25 @@ var tomlSettings = toml.Config{
 		return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
 	},
 }
+
+// <specular modification>
+type RollupConfig struct {
+	coinbase            common.Address
+	l2ChainId           uint64
+	l1FeeOveread        int64
+	l1FeeMultiplier     float64
+	l1OracleAddress     common.Address
+	l1OracleBaseFeeSlot common.Hash
+}
+
+func (r RollupConfig) GetCoinbase() common.Address         { return r.coinbase }
+func (r RollupConfig) GetL2ChainID() uint64                { return r.l2ChainId }
+func (r RollupConfig) GetL1FeeOverhead() int64             { return r.l1FeeOveread }
+func (r RollupConfig) GetL1FeeMultiplier() float64         { return r.l1FeeMultiplier }
+func (r RollupConfig) GetL1OracleAddress() common.Address  { return r.l1OracleAddress }
+func (r RollupConfig) GetL1OracleBaseFeeSlot() common.Hash { return r.l1OracleBaseFeeSlot }
+
+// <specular modification/>
 
 type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
@@ -177,6 +198,21 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		cfg.Eth.OverrideVerkle = &v
 	}
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
+
+	// <specular modification>
+	log.Info("initializing specular hooks")
+	rCfg := RollupConfig{
+		coinbase:            common.HexToAddress(ctx.String(utils.RollupCoinBaseFlag.Name)),
+		l2ChainId:           ctx.Uint64(utils.NetworkIdFlag.Name),
+		l1FeeOveread:        ctx.Int64(utils.RollupL1FeeOverheadFlag.Name),
+		l1FeeMultiplier:     ctx.Float64(utils.RollupL1FeeMultiplierFlag.Name),
+		l1OracleAddress:     common.HexToAddress(ctx.String(utils.RollupL1OracleAddressFlag.Name)),
+		l1OracleBaseFeeSlot: common.HexToHash(ctx.String(utils.RollupL1OracleBaseFeeSlotFlag.Name)),
+	}
+	vm := eth.BlockChain().GetVMConfig()
+	vm.SpecularEVMPreTransferHook = hook.MakeSpecularEVMPreTransferHook(rCfg)
+	vm.SpecularL1FeeReader = hook.MakeSpecularL1FeeReader(rCfg)
+	// <specular modification/>
 
 	// Create gauge with geth system and build information
 	if eth != nil { // The 'eth' backend may be nil in light mode

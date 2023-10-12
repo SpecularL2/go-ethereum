@@ -202,7 +202,9 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		withdrawals: args.Withdrawals,
 		beaconRoot:  args.BeaconRoot,
 		noTxs:       true,
-		txs:         args.Transactions,
+		// <specular modification>
+		txs: args.Transactions,
+		// <specular modification/>
 	}
 	// <specular modification>
 	empty := w.getSealingBlock(emptyParams)

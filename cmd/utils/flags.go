@@ -956,6 +956,32 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Usage:    "Enable L2 Engine API",
 		Category: flags.EthCategory,
 	}
+	RollupCoinBaseFlag = &cli.StringFlag{
+		Name:  "rollup.coinbase",
+		Usage: "The sequencer/validator address to be unlocked (pass passphrash via --password)",
+		Value: "",
+	}
+	RollupL1FeeOverheadFlag = &cli.Int64Flag{
+		Name:  "rollup.l1-fee-overhead",
+		Usage: "Gas cost of sequencing a Tx",
+		Value: 0,
+	}
+	RollupL1FeeMultiplierFlag = &cli.Float64Flag{
+		Name:  "rollup.l1-fee-multiplier",
+		Usage: "Scalar value to increase the L1 Fee",
+		Value: 1.5,
+	}
+	RollupL1OracleAddressFlag = &cli.StringFlag{
+		Name:  "rollup.l1-oracle-address",
+		Usage: "The address of the L1Oracle contract",
+		Value: "0xff00000000000000000000000000000000000002",
+	}
+	RollupL1OracleBaseFeeSlotFlag = &cli.StringFlag{
+		Name:  "rollup.l1-oracle-base-fee-slot",
+		Usage: "The address of the L1Oracle contract",
+		// keccak256("specular.basefee")
+		Value: "0x18b94da8c18f49ac05520153402a0591c3c917271b9d13711fd6fdb213ded168",
+	}
 	// </specular modification/>
 )
 
