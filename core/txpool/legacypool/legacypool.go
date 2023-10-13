@@ -63,25 +63,10 @@ var (
 	// another remote transaction.
 	ErrTxPoolOverflow = errors.New("txpool is full")
 
-	// ErrReplaceUnderpriced is returned if a transaction is attempted to be replaced
-	// with a different one without the required price bump.
-	ErrReplaceUnderpriced = errors.New("replacement transaction underpriced")
-
-	// ErrGasLimit is returned if a transaction's requested gas limit exceeds the
-	// maximum allowance of the current block.
-	ErrGasLimit = errors.New("exceeds block gas limit")
-
-	// ErrNegativeValue is a sanity error to ensure no one is able to specify a
-	// transaction with a negative value.
-	ErrNegativeValue = errors.New("negative value")
-
-	// ErrOversizedData is returned if the input data of a transaction is greater
-	// than some meaningful limit a user might use. This is not a consensus error
-	// making the transaction invalid, rather a DOS protection.
-	ErrOversizedData = errors.New("oversized data")
-
+	// <specular modification>
 	// ErrL1Fee is returned if the L1 fee could not be calculated
 	ErrL1Fee = errors.New("could not calculate L1 fee")
+	// <specular modification/>
 )
 
 var (
@@ -1429,11 +1414,11 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 }
 
 // getBalanceWithL1Fee returns the balance of the addr minus the L1 fee of the first tx in the list
-func (pool *LegacyPool) getBalanceWithL1Fee(addr common.Address, list *list) *big.Int {
+func (pool *LegacyPool) getBalanceWithL1Fee(addr common.Address, txList *list) *big.Int {
 	balance := pool.currentState.GetBalance(addr)
-	if !list.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
+	if !txList.Empty() && pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
 		// Reduce the cost-cap by L1 rollup cost of the first tx if necessary. Other txs will get filtered out afterwards.
-		first := list.txs.Get((*list.txs.index)[0])
+		first := txList.txs.Get((*txList.txs.index)[0])
 		l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(first, pool.currentState)
 
 		balance = new(big.Int).Sub(balance, l1Fee) // negative big int is fine
