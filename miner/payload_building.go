@@ -206,9 +206,7 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		txs: args.Transactions,
 		// <specular modification/>
 	}
-	// <specular modification>
 	empty := w.getSealingBlock(emptyParams)
-	// <specular modification/>
 	if empty.err != nil {
 		return nil, empty.err
 	}
