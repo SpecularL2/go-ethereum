@@ -36,12 +36,13 @@ import (
 // TODO: instead of hardcoding this, should we calculate the actual L1 fee?
 const l1InfoGasOverhead = uint64(70_000)
 
-func EffectiveGasLimit(gasLimit uint64) uint64 {
-	// TODO: check if this is a Specular chain
-	if l1InfoGasOverhead < gasLimit {
-		gasLimit -= l1InfoGasOverhead
-	} else {
-		gasLimit = 0
+func EffectiveGasLimit(gasLimit uint64, config *params.ChainConfig) uint64 {
+	if config.EnableL1Fee {
+		if l1InfoGasOverhead < gasLimit {
+			gasLimit -= l1InfoGasOverhead
+		} else {
+			gasLimit = 0
+		}
 	}
 	return gasLimit
 }
@@ -93,7 +94,7 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 		return ErrNegativeValue
 	}
 	// Ensure the transaction doesn't exceed the current block limit gas
-	if EffectiveGasLimit(head.GasLimit) < tx.Gas() {
+	if EffectiveGasLimit(head.GasLimit, opts.Config) < tx.Gas() {
 		return ErrGasLimit
 	}
 	// Sanity check for extremely large numbers (supported by RLP or RPC)

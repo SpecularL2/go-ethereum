@@ -212,6 +212,7 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	vm := eth.BlockChain().GetVMConfig()
 	vm.SpecularEVMPreTransferHook = hook.MakeSpecularEVMPreTransferHook(rCfg)
 	vm.SpecularL1FeeReader = hook.MakeSpecularL1FeeReader(rCfg)
+	backend.ChainConfig().EnableL1Fee = true
 	// <specular modification/>
 
 	// Create gauge with geth system and build information
