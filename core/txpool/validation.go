@@ -30,6 +30,23 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
+// L1 Info Gas Overhead is the amount of gas the the L1 info deposit consumes.
+// It is removed from the tx pool max gas to better indicate that L2 transactions
+// are not able to consume all of the gas in a L2 block as the L1 info deposit is always present.
+// TODO: instead of hardcoding this, should we calculate the actual L1 fee?
+const l1InfoGasOverhead = uint64(70_000)
+
+func EffectiveGasLimit(gasLimit uint64) uint64 {
+	// TODO: check if this is a Specular chain
+	if l1InfoGasOverhead < gasLimit {
+		gasLimit -= l1InfoGasOverhead
+	} else {
+		gasLimit = 0
+	}
+	return gasLimit
+}
+
+
 // ValidationOptions define certain differences between transaction validation
 // across the different pools without having to duplicate those checks.
 type ValidationOptions struct {
@@ -76,7 +93,7 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 		return ErrNegativeValue
 	}
 	// Ensure the transaction doesn't exceed the current block limit gas
-	if head.GasLimit < tx.Gas() {
+	if EffectiveGasLimit(head.GasLimit) < tx.Gas() {
 		return ErrGasLimit
 	}
 	// Sanity check for extremely large numbers (supported by RLP or RPC)

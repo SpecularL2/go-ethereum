@@ -126,6 +126,8 @@ type BlockChain interface {
 
 	// StateAt returns a state database for a given root hash (generally the head).
 	StateAt(root common.Hash) (*state.StateDB, error)
+
+	// GetVMConfig returns the vm config
 	GetVMConfig() *vm.Config
 }
 
@@ -202,6 +204,10 @@ func (config *Config) sanitize() Config {
 	return conf
 }
 
+// <specular modification>
+type L1CostFn func(tx *types.Transaction) *big.Int
+// <specular modification/>
+
 // LegacyPool contains all currently known transactions. Transactions
 // enter the pool when they are received from the network or submitted
 // locally. They exit the pool when they are included in the blockchain.
@@ -242,6 +248,8 @@ type LegacyPool struct {
 	initDoneCh      chan struct{}  // is closed once the pool is initialized (for tests)
 
 	changesSinceReorg int // A counter for how many drops we've performed in-between reorg.
+
+	l1CostFn		L1CostFn
 }
 
 type txpoolResetRequest struct {
@@ -281,6 +289,14 @@ func New(config Config, chain BlockChain) *LegacyPool {
 	if !config.NoLocals && config.Journal != "" {
 		pool.journal = newTxJournal(config.Journal)
 	}
+
+	if pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
+		pool.l1CostFn = func (tx *types.Transaction) *big.Int {
+			l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(tx, pool.currentState)
+			return l1Fee
+		}
+	}
+
 	return pool
 }
 
@@ -627,7 +643,12 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 		ExistingCost: func(addr common.Address, nonce uint64) *big.Int {
 			if list := pool.pending[addr]; list != nil {
 				if tx := list.txs.Get(nonce); tx != nil {
-					return tx.Cost()
+					cost := tx.Cost()
+					if pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
+						l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(tx, pool.currentState)
+						cost.Add(cost, l1Fee)
+					}
+
 				}
 			}
 			return nil
@@ -754,7 +775,7 @@ func (pool *LegacyPool) add(tx *types.Transaction, local bool) (replaced bool, e
 	// Try to replace an existing transaction in the pending pool
 	if list := pool.pending[from]; list != nil && list.Contains(tx.Nonce()) {
 		// Nonce already pending, check if required price bump is met
-		inserted, old := list.Add(tx, pool.config.PriceBump)
+		inserted, old := list.Add(tx, pool.config.PriceBump, pool.l1CostFn)
 		if !inserted {
 			pendingDiscardMeter.Mark(1)
 			return false, txpool.ErrReplaceUnderpriced
@@ -828,7 +849,7 @@ func (pool *LegacyPool) enqueueTx(hash common.Hash, tx *types.Transaction, local
 	if pool.queue[from] == nil {
 		pool.queue[from] = newList(false)
 	}
-	inserted, old := pool.queue[from].Add(tx, pool.config.PriceBump)
+	inserted, old := pool.queue[from].Add(tx, pool.config.PriceBump, pool.l1CostFn)
 	if !inserted {
 		// An older transaction was better, discard this
 		queuedDiscardMeter.Mark(1)
@@ -882,7 +903,7 @@ func (pool *LegacyPool) promoteTx(addr common.Address, hash common.Hash, tx *typ
 	}
 	list := pool.pending[addr]
 
-	inserted, old := list.Add(tx, pool.config.PriceBump)
+	inserted, old := list.Add(tx, pool.config.PriceBump, pool.l1CostFn)
 	if !inserted {
 		// An older transaction was better, discard this
 		pool.all.Remove(hash)
