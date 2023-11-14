@@ -335,7 +335,8 @@ type ChainConfig struct {
 	IsDevMode bool          `json:"isDev,omitempty"`
 
 	// <specular modification>
-	EnableL2EngineApi bool `json:"enableL2EngineApi,omitempty"`
+	EnableL2EngineApi        bool           `json:"enableL2EngineApi,omitempty"`
+	L2BaseFeeRecipientWallet common.Address `json:"l2BaseFeeRecipientWallet,omitempty"`
 	// <specular modification/>
 }
 
@@ -372,6 +373,7 @@ func (c *ChainConfig) Description() string {
 	// <specular modification>
 	case c.EnableL2EngineApi:
 		banner += "Consensus: L2 gas limit API enabled\n"
+		banner += fmt.Sprintf(" - L2 Base fee recipient: %s\n", c.L2BaseFeeRecipientWallet)
 	// <specular modification/>
 	case c.Ethash != nil:
 		if c.TerminalTotalDifficulty == nil {
