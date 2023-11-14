@@ -507,8 +507,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	// <specular modification>
-	if (st.evm.ChainConfig().L2BaseFeeRecipient != common.Address{}) {
-		st.state.AddBalance(st.evm.ChainConfig().L2BaseFeeRecipient, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.evm.Context.BaseFee))
+	if (st.evm.ChainConfig().L2BaseFeeRecipientWallet != common.Address{}) {
+		st.state.AddBalance(st.evm.ChainConfig().L2BaseFeeRecipientWallet, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.evm.Context.BaseFee))
 	}
 	// </specular modification>
 
