@@ -387,6 +387,11 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *trie.Database, gen
 	if compatErr != nil && ((head.Number.Uint64() != 0 && compatErr.RewindToBlock != 0) || (head.Time != 0 && compatErr.RewindToTime != 0)) {
 		return newcfg, stored, compatErr
 	}
+	// <specular modification>
+	if (newcfg.IsLondon(head.Number) && newcfg.L2BaseFeeRecipient == common.Address{}) {
+		return newcfg, stored, errors.New("l2BaseFeeRecipient must be configured if EIP-1559 enabled")
+	}
+	// </specular modification>
 	// Don't overwrite if the old is identical to the new
 	if newData, _ := json.Marshal(newcfg); !bytes.Equal(storedData, newData) {
 		rawdb.WriteChainConfig(db, stored, newcfg)
