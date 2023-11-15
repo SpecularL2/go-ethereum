@@ -138,6 +138,13 @@ type Config struct {
 	Journal   string           // Journal of local transactions to survive node restarts
 	Rejournal time.Duration    // Time interval to regenerate the local transaction journal
 
+	// <specular modification>
+	// JournalRemote controls whether journaling includes remote transactions or not.
+	// When true, all transactions loaded from the journal are treated as remote.
+	JournalRemote bool
+	// <specular modification />
+
+
 	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
 	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
 
@@ -286,7 +293,7 @@ func New(config Config, chain BlockChain) *LegacyPool {
 	}
 	pool.priced = newPricedList(pool.all)
 
-	if !config.NoLocals && config.Journal != "" {
+	if (!config.NoLocals || config.JournalRemote) && config.Journal != "" {
 		pool.journal = newTxJournal(config.Journal)
 	}
 
@@ -330,12 +337,16 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 
 	// If local transactions and journaling is enabled, load from disk
 	if pool.journal != nil {
-		if err := pool.journal.load(pool.addLocals); err != nil {
+		add := pool.addLocals
+		if pool.config.JournalRemote {
+			add = pool.addRemotesSync // Use sync version to match pool.AddLocals
+		}
+		if err := pool.journal.load(add); err != nil {
 			log.Warn("Failed to load transaction journal", "err", err)
 		}
-		if err := pool.journal.rotate(pool.local()); err != nil {
-			log.Warn("Failed to rotate transaction journal", "err", err)
-		}
+		if err := pool.journal.rotate(pool.toJournal()); err != nil {
+ 			log.Warn("Failed to rotate transaction journal", "err", err)
+ 		}
 	}
 	pool.wg.Add(1)
 	go pool.loop()
@@ -403,7 +414,7 @@ func (pool *LegacyPool) loop() {
 		case <-journal.C:
 			if pool.journal != nil {
 				pool.mu.Lock()
-				if err := pool.journal.rotate(pool.local()); err != nil {
+				if err := pool.journal.rotate(pool.toJournal()); err != nil {
 					log.Warn("Failed to rotate local tx journal", "err", err)
 				}
 				pool.mu.Unlock()
@@ -576,6 +587,23 @@ func (pool *LegacyPool) Locals() []common.Address {
 	defer pool.mu.Unlock()
 
 	return pool.locals.flatten()
+}
+
+// toJournal retrieves all transactions that should be included in the journal,
+// grouped by origin account and sorted by nonce.
+// The returned transaction set is a copy and can be freely modified by calling code.
+func (pool *LegacyPool) toJournal() map[common.Address]types.Transactions {
+	if !pool.config.JournalRemote {
+		return pool.local()
+	}
+	txs := make(map[common.Address]types.Transactions)
+	for addr, pending := range pool.pending {
+		txs[addr] = append(txs[addr], pending.Flatten()...)
+	}
+	for addr, queued := range pool.queue {
+		txs[addr] = append(txs[addr], queued.Flatten()...)
+	}
+	return txs
 }
 
 // local retrieves all currently known local transactions, grouped by origin
