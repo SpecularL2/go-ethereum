@@ -710,7 +710,7 @@ func (w *worker) makeEnv(parent *types.Header, header *types.Header, coinbase co
 	// the miner to speed block sealing up a bit.
 	state, err := w.chain.StateAt(parent.Root)
 	// <specular modification>
-	if w.config.EnableL2EngineApi { // Allow the miner to reorg its own chain arbitrarily deep
+	if w.chainConfig.EnableL2GasLimitApi { // Allow the miner to reorg its own chain arbitrarily deep
 		if historicalBackend, ok := w.eth.(BackendWithHistoricalState); ok {
 			var release tracers.StateReleaseFunc
 			parentBlock := w.eth.BlockChain().GetBlockByHash(parent.Hash())
@@ -942,7 +942,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	}
 	// Set the extra field.
 	// <specular modification>
-	if len(w.extra) != 0 && !w.config.EnableL2EngineApi { // L2 chains must not set any extra data.
+	if len(w.extra) != 0 && !w.chainConfig.EnableL2GasLimitApi { // L2 chains must not set any extra data.
 		header.Extra = w.extra
 	}
 	// <specular modification/>
