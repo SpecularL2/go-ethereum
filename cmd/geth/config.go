@@ -89,21 +89,12 @@ var tomlSettings = toml.Config{
 
 // <specular modification>
 type RollupConfig struct {
-	coinbase            common.Address
-	l2ChainId           uint64
-	l1FeeOveread        int64
-	l1FeeMultiplier     float64
-	l1OracleAddress     common.Address
-	l1OracleBaseFeeSlot common.Hash
+	l1FeeRecipient common.Address
+	l2ChainId      uint64
 }
 
-func (r RollupConfig) GetCoinbase() common.Address         { return r.coinbase }
-func (r RollupConfig) GetL2ChainID() uint64                { return r.l2ChainId }
-func (r RollupConfig) GetL1FeeOverhead() int64             { return r.l1FeeOveread }
-func (r RollupConfig) GetL1FeeMultiplier() float64         { return r.l1FeeMultiplier }
-func (r RollupConfig) GetL1OracleAddress() common.Address  { return r.l1OracleAddress }
-func (r RollupConfig) GetL1OracleBaseFeeSlot() common.Hash { return r.l1OracleBaseFeeSlot }
-
+func (r RollupConfig) GetL1FeeRecipient() common.Address { return r.l1FeeRecipient }
+func (r RollupConfig) GetL2ChainID() uint64              { return r.l2ChainId }
 // <specular modification/>
 
 type ethstatsConfig struct {
@@ -202,12 +193,8 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	// <specular modification>
 	log.Info("initializing specular hooks")
 	rCfg := RollupConfig{
-		coinbase:            common.HexToAddress(ctx.String(utils.RollupCoinBaseFlag.Name)),
-		l2ChainId:           ctx.Uint64(utils.NetworkIdFlag.Name),
-		l1FeeOveread:        ctx.Int64(utils.RollupL1FeeOverheadFlag.Name),
-		l1FeeMultiplier:     ctx.Float64(utils.RollupL1FeeMultiplierFlag.Name),
-		l1OracleAddress:     common.HexToAddress(ctx.String(utils.RollupL1OracleAddressFlag.Name)),
-		l1OracleBaseFeeSlot: common.HexToHash(ctx.String(utils.RollupL1OracleBaseFeeSlotFlag.Name)),
+		l1FeeRecipient: params.SpecularL1FeeRecipient,
+		l2ChainId:      ctx.Uint64(utils.NetworkIdFlag.Name),
 	}
 	vm := eth.BlockChain().GetVMConfig()
 	vm.SpecularEVMPreTransferHook = hook.MakeSpecularEVMPreTransferHook(rCfg)

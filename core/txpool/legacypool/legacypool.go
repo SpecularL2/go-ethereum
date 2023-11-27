@@ -212,14 +212,14 @@ func (config *Config) sanitize() Config {
 }
 
 // <specular modification>
-type L1CostFn func(tx *types.Transaction) *big.Int
+type L1CostFn func(tx *types.Transaction) *big.Int //
 // <specular modification/>
 
 // LegacyPool contains all currently known transactions. Transactions
 // enter the pool when they are received from the network or submitted
 // locally. They exit the pool when they are included in the blockchain.
 //
-// The pool separates processable transactions (which can be applied to the
+// The pool separates processable transactions (which can be applied to thea
 // current state) and future transactions. Transactions move between those
 // two states over time as they are received and processed.
 type LegacyPool struct {
