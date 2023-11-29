@@ -62,11 +62,6 @@ var (
 	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
 	// another remote transaction.
 	ErrTxPoolOverflow = errors.New("txpool is full")
-
-	// <specular modification>
-	// ErrL1Fee is returned if the L1 fee could not be calculated
-	ErrL1Fee = errors.New("could not calculate L1 fee")
-	// <specular modification/>
 )
 
 var (
