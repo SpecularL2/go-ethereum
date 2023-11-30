@@ -87,16 +87,6 @@ var tomlSettings = toml.Config{
 	},
 }
 
-// <specular modification>
-type RollupConfig struct {
-	l1FeeRecipient common.Address
-	l2ChainId      uint64
-}
-
-func (r RollupConfig) GetL1FeeRecipient() common.Address { return r.l1FeeRecipient }
-func (r RollupConfig) GetL2ChainID() uint64              { return r.l2ChainId }
-// <specular modification/>
-
 type ethstatsConfig struct {
 	URL string `toml:",omitempty"`
 }
@@ -192,14 +182,13 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	// <specular modification>
 	log.Info("initializing specular hooks")
-	rCfg := RollupConfig{
-		l1FeeRecipient: params.SpecularL1FeeRecipient,
-		l2ChainId:      ctx.Uint64(utils.NetworkIdFlag.Name),
+	l2ChainId := ctx.Uint64(utils.NetworkIdFlag.Name)
+	l1FeeRecipient := backend.ChainConfig().L1FeeRecipient
+	if (l1FeeRecipient != common.Address{}) {
+		vm := eth.BlockChain().GetVMConfig()
+		vm.SpecularEVMPreTransferHook = hook.MakeSpecularEVMPreTransferHook(l2ChainId, l1FeeRecipient)
+		vm.SpecularL1FeeReader = hook.MakeSpecularL1FeeReader(l2ChainId)
 	}
-	vm := eth.BlockChain().GetVMConfig()
-	vm.SpecularEVMPreTransferHook = hook.MakeSpecularEVMPreTransferHook(rCfg)
-	vm.SpecularL1FeeReader = hook.MakeSpecularL1FeeReader(rCfg)
-	backend.ChainConfig().EnableL1Fee = true
 	// <specular modification/>
 
 	// Create gauge with geth system and build information

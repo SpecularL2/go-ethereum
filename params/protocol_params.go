@@ -22,11 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// <specular modification>
-// The L1 portion of the transaction fee accumulates at this predeploy
-var SpecularL1FeeRecipient = common.HexToAddress("0x2A0000000000000000000000000000000000001A")
-// <specular modification />
-
 const (
 	GasLimitBoundDivisor uint64 = 1024               // The bound divisor of the gas limit, used in update calculations.
 	MinGasLimit          uint64 = 5000               // Minimum the gas limit may ever be.

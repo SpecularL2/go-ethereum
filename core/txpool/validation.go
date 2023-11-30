@@ -37,7 +37,7 @@ import (
 const l1InfoGasOverhead = uint64(70_000)
 
 func EffectiveGasLimit(gasLimit uint64, config *params.ChainConfig) uint64 {
-	if config.EnableL1Fee {
+	if (config.L1FeeRecipient != common.Address{}) {
 		if l1InfoGasOverhead < gasLimit {
 			gasLimit -= l1InfoGasOverhead
 		} else {
