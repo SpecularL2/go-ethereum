@@ -401,6 +401,14 @@ func (c *ChainConfig) Description() string {
 	}
 	banner += "\n"
 
+	// <specular modification>
+	if (c.L1FeeRecipient != common.Address{}) {
+		banner += "Rollup: L1 Fee is enabled\n"
+		banner += fmt.Sprintf("Rollup: L1 Fee Recipient: %s\n", c.L1FeeRecipient)
+		banner += "\n"
+	}
+	// <specular modification />
+
 	// Create a list of forks with a short description of them. Forks that only
 	// makes sense for mainnet should be optional at printing to avoid bloating
 	// the output for testnets and private networks.
