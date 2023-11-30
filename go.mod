@@ -4,6 +4,8 @@ go 1.20
 
 replace github.com/specularL2/specular/lib/el_golang_lib => ../../../lib/el_golang_lib
 
+replace github.com/specularL2/specular/ops => ../../../ops
+
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0
 	github.com/Microsoft/go-winio v0.6.1
@@ -26,7 +28,7 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
-	github.com/fsnotify/fsnotify v1.6.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/gballet/go-verkle v0.0.0-20230607174250-df487255f46b
 	github.com/go-stack/stack v1.8.1
@@ -126,6 +128,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/specularL2/specular/ops v0.0.0-20231129092153-13f66846bd07 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
