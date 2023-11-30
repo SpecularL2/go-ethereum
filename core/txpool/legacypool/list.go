@@ -326,11 +326,13 @@ func (l *list) Add(tx *types.Transaction, priceBump uint64, l1CostFn L1CostFn) (
 	}
 	// Add new tx cost to totalcost
 	l.totalcost.Add(l.totalcost, tx.Cost())
+	// <specular modification />
 	if l1CostFn != nil {
 		if l1Cost := l1CostFn(tx); l1Cost != nil {
 			l.totalcost.Add(l.totalcost, l1Cost)
 		}
 	}
+	// <specular modification>
 	// Otherwise overwrite the old transaction with the current one
 	l.txs.Put(tx)
 	if cost := tx.Cost(); l.costcap.Cmp(cost) < 0 {

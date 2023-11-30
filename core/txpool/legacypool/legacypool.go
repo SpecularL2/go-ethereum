@@ -122,8 +122,10 @@ type BlockChain interface {
 	// StateAt returns a state database for a given root hash (generally the head).
 	StateAt(root common.Hash) (*state.StateDB, error)
 
+	// <specular modification>
 	// GetVMConfig returns the vm config
 	GetVMConfig() *vm.Config
+	// <specular modification />
 }
 
 // Config are the configuration parameters of the transaction pool.
@@ -251,7 +253,9 @@ type LegacyPool struct {
 
 	changesSinceReorg int // A counter for how many drops we've performed in-between reorg.
 
-	l1CostFn		L1CostFn
+	// <specular modification>
+	l1CostFn L1CostFn
+	// <specular modification />
 }
 
 type txpoolResetRequest struct {
@@ -288,6 +292,7 @@ func New(config Config, chain BlockChain) *LegacyPool {
 	}
 	pool.priced = newPricedList(pool.all)
 
+	// <specular modification>
 	if (!config.NoLocals || config.JournalRemote) && config.Journal != "" {
 		pool.journal = newTxJournal(config.Journal)
 	}
@@ -298,6 +303,7 @@ func New(config Config, chain BlockChain) *LegacyPool {
 			return l1Fee
 		}
 	}
+	// <specular modification />
 
 	return pool
 }
@@ -332,6 +338,7 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 
 	// If local transactions and journaling is enabled, load from disk
 	if pool.journal != nil {
+		// <specular modification>
 		add := pool.addLocals
 		if pool.config.JournalRemote {
 			add = pool.addRemotesSync // Use sync version to match pool.AddLocals
@@ -340,8 +347,9 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 			log.Warn("Failed to load transaction journal", "err", err)
 		}
 		if err := pool.journal.rotate(pool.toJournal()); err != nil {
- 			log.Warn("Failed to rotate transaction journal", "err", err)
- 		}
+			log.Warn("Failed to rotate transaction journal", "err", err)
+		}
+		// <specular modification />
 	}
 	pool.wg.Add(1)
 	go pool.loop()
@@ -584,6 +592,7 @@ func (pool *LegacyPool) Locals() []common.Address {
 	return pool.locals.flatten()
 }
 
+// <specular modification>
 // toJournal retrieves all transactions that should be included in the journal,
 // grouped by origin account and sorted by nonce.
 // The returned transaction set is a copy and can be freely modified by calling code.
@@ -600,6 +609,8 @@ func (pool *LegacyPool) toJournal() map[common.Address]types.Transactions {
 	}
 	return txs
 }
+
+// <specular modification />
 
 // local retrieves all currently known local transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
@@ -666,12 +677,13 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 		ExistingCost: func(addr common.Address, nonce uint64) *big.Int {
 			if list := pool.pending[addr]; list != nil {
 				if tx := list.txs.Get(nonce); tx != nil {
+					// <specular modification>
 					cost := tx.Cost()
 					if pool.chain.GetVMConfig().SpecularL1FeeReader != nil {
 						l1Fee, _ := pool.chain.GetVMConfig().SpecularL1FeeReader(tx, pool.currentState)
 						cost.Add(cost, l1Fee)
 					}
-
+					// <specular modification />
 				}
 			}
 			return nil
@@ -1457,6 +1469,7 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 	pool.addTxsLocked(reinject, false)
 }
 
+// <specular modification>
 // getBalanceWithL1Fee returns the balance of the addr minus the L1 fee of the first tx in the list
 func (pool *LegacyPool) getBalanceWithL1Fee(addr common.Address, txList *list) *big.Int {
 	balance := pool.currentState.GetBalance(addr)
@@ -1470,6 +1483,8 @@ func (pool *LegacyPool) getBalanceWithL1Fee(addr common.Address, txList *list) *
 
 	return balance
 }
+
+// <specular modification />
 
 // promoteExecutables moves transactions that have become processable from the
 // future queue to the set of pending transactions. During this process, all
@@ -1493,8 +1508,10 @@ func (pool *LegacyPool) promoteExecutables(accounts []common.Address) []*types.T
 		}
 		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
+		// <specular modification>
 		balance := pool.getBalanceWithL1Fee(addr, list)
 		drops, _ := list.Filter(balance, gasLimit)
+		// <specular modification />
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
@@ -1695,8 +1712,10 @@ func (pool *LegacyPool) demoteUnexecutables() {
 			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
+		// <specular modification>
 		balance := pool.getBalanceWithL1Fee(addr, list)
 		drops, invalids := list.Filter(balance, gasLimit)
+		// <specular modification />
 		for _, tx := range drops {
 			hash := tx.Hash()
 			log.Trace("Removed unpayable pending transaction", "hash", hash)

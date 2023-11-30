@@ -30,23 +30,20 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
-// L1 Info Gas Overhead is the amount of gas the the L1 info deposit consumes.
-// It is removed from the tx pool max gas to better indicate that L2 transactions
-// are not able to consume all of the gas in a L2 block as the L1 info deposit is always present.
-// TODO: instead of hardcoding this, should we calculate the actual L1 fee?
-const l1InfoGasOverhead = uint64(70_000)
+// <specular modification>
+// L1Oracle Update Overhead is the amount of gas consumed by updating the L1Oracle every epoch
+const l1OracleUpdateOverhead = uint64(70_000)
 
 func EffectiveGasLimit(gasLimit uint64, config *params.ChainConfig) uint64 {
 	if (config.L1FeeRecipient != common.Address{}) {
-		if l1InfoGasOverhead < gasLimit {
-			gasLimit -= l1InfoGasOverhead
+		if l1OracleUpdateOverhead < gasLimit {
+			gasLimit -= l1OracleUpdateOverhead
 		} else {
 			gasLimit = 0
 		}
 	}
 	return gasLimit
 }
-
 
 // ValidationOptions define certain differences between transaction validation
 // across the different pools without having to duplicate those checks.
