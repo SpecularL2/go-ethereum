@@ -44,6 +44,7 @@ func EffectiveGasLimit(gasLimit uint64, config *params.ChainConfig) uint64 {
 	}
 	return gasLimit
 }
+// <specular modification />
 
 // ValidationOptions define certain differences between transaction validation
 // across the different pools without having to duplicate those checks.
