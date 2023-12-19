@@ -216,7 +216,7 @@ type L1CostFn func(tx *types.Transaction) *big.Int //
 // enter the pool when they are received from the network or submitted
 // locally. They exit the pool when they are included in the blockchain.
 //
-// The pool separates processable transactions (which can be applied to thea
+// The pool separates processable transactions (which can be applied to the
 // current state) and future transactions. Transactions move between those
 // two states over time as they are received and processed.
 type LegacyPool struct {
