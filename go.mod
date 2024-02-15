@@ -4,7 +4,7 @@ go 1.20
 
 replace github.com/specularL2/specular/lib/el_golang_lib => ../../../lib/el_golang_lib
 
-replace github.com/specularL2/specular/ops => ../../../ops
+replace github.com/specularL2/specular/bindings-go => ../../../bindings-go
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0
@@ -128,7 +128,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/specularL2/specular/ops v0.0.0-20231129092153-13f66846bd07 // indirect
+	github.com/specularL2/specular/bindings-go v0.0.0-00010101000000-000000000000 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
